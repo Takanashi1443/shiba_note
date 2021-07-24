@@ -14,25 +14,31 @@
 各コンポーネントは、ゲームマネージャに管理されていなくても「イベント」を発行することができ、
 「イベント」が発行されると、それに反応する各コンポーネントたちが勝手に反応する。
 
+## シーンイベントとは
+
 イベントは様々な種類を定義できるが、最も基本的なものはシーンの進行に関する「シーンイベント」である。
 
 「ステージ開始」や「ステージクリア」といった、よくあるイベントを発行対象とする。
 
-シーンイベントでは、パラメータを渡すことは出来ないものとする。
+ShibaEngineでは、「よくあるシーンイベント」を列挙子とした「StylizedSceneEvents」という列挙型を定義している。
+
+また、このStylizedSceneEventsをシーンイベントとして使用する場合の基本的なコンポーネントも準備している。
+
+（逆に、多くのShibaEngineのコンポーネントはStylizedSceneEventsを使用することを想定しており、そうでない場合は拡張を要する場合が多い）
+
+StylizedSceneEventsを使う場合、イベントとともにパラメータを渡すことはできない。
+
 例えば、クイズにおいて、「正解した」というイベントは作れるが、「3番を選んで正解した」（3は他の数にもなりうる）のような、
-パラメータを伴うイベントは作れない。
+パラメータを伴うイベントは作れない。「3番を選んだ」という情報はどこか他に保持し、参照する形を取る。
 
-ここではシーンイベント、特にShibaEngineのデフォルトで用意している「StylizedSceneEvents」の詳細について説明する。
+ここでは、基本的にStylizedSceneEventsを使うことを想定して以下の説明を行うが、StylizedSceneEvents以外のシーンイベントについても
+同様の方法で作ることができる。
 
-## シーンイベント
+シーンイベントに関するスクリプト群は、Plugins/ShibaEngine/Core/Script/EventSystem 内にある。
 
-### はじめに
+## 5種類のコンポーネント
 
-シーンイベントで使用するスクリプト群は、Plugins/ShibaEngine/Core/Script/EventSystem 内にある。
-
-#### 5種類のコンポーネント
-
-イベントシステムには、以下の5種類のコンポーネントが関連する。
+シーンイベントシステムには、以下の5種類のコンポーネントが関連する。
 
 - シーンマネージャ (SceneManager)
 - コーラー (SceneEventCaller)
@@ -40,11 +46,10 @@
 - トランスミッター (SceneEventTransmitter)
 - レシーバ (SceneEventReceiver)
 
-の5つが存在する。
+また、使用するシーンイベントの一覧を列挙型で定義するSceneEventsクラスを定義する。
+（StylizedSceneEventsはSceneEventsの1つであり、ShibaEngineで標準とするシーンイベントである）
 
-また、使用するシーンイベントの一覧を列挙型で定義するクラスSceneEventsがある。
-
-上記5種類のコンポーネントは全て、列挙型であるSceneEvents（シーンで発生するイベント）を持つジェネリックとして定義される。
+上記5種類のコンポーネントは全て、列挙型であるSceneEventsを持つジェネリックとして定義される。
 
 (後で図にしたい)
 上記の5つのうち、コーラーは、シーンイベントを発行するもの全般、リスナーは、シーンイベントを受けて何かするもの全般を指す。
@@ -52,9 +57,9 @@
 一方、トランスミッターはコーラーから利用され、シーンマネージャを参照してイベントを発行するだけの機能を持つコンポーネント、
 レシーバはシーンマネージャを参照してイベントの発行を受信しリスナーに伝えるだけの機能を持つコンポーネントである。
 
-#### 各コンポーネントの動作の説明
+## 各コンポーネントの動作の説明
 
-##### シーンマネージャ
+### シーンマネージャ
 
 シーンマネージャは、購読対象となるストリームの実体（Subject\<SceneEvents\>）を持ち、IObservable\<SceneEvents\>を外部に公開する。
 トランスミッターから参照され、イベントを引数としてイベント実行を試みる関数CallEventを実行される。
@@ -62,7 +67,12 @@
 
 シーンマネージャは、トランスミッターがイベント実行を要求しても棄却する権限を持つ。
 
-##### トランスミッター
+ShibaEngineはいくつかの非常に単純なSceneManagerを提供する（後述）。
+
+これらのSceneManagerを使用できるのであれば使用してもよいが、そうでない場合は、
+StylizedSceneEventsを使用する場合であっても自分でSceneManagerを定義する必要がある。
+
+### トランスミッター
 
 トランスミッターは、コーラーと同じGameObjectにアタッチされ、参照される。
 
@@ -70,7 +80,17 @@
 
 コンポーネントは原則、トランスミッター経由以外でシーンマネージャのInvokeEvent関数を実行してはならない。
 
-##### レシーバ
+StylizedSceneEvents用のトランスミッター「StylizedSceneEventTransmitter」は
+
+```
+
+Plugins/ShibaEngine/Core/Script/EventSystem/Stylized/StylizedSceneEventTransmitter
+
+```
+
+に定義されている。
+
+### レシーバ
 
 レシーバは、リスナーと同じGameObjectにアタッチされ、相互に参照する。
 
@@ -79,18 +99,34 @@
 
 コンポーネントは原則、レシーバ経由以外でシーンマネージャのストリームを購読してはならない。
 
-##### コーラーとリスナー
+StylizedSceneEvents用のレシーバ「StylizedSceneEventReceiver」は
+
+```
+
+Plugins/ShibaEngine/Core/Script/EventSystem/Stylized/StylizedSceneEventReceiver
+
+```
+
+に定義されている。
+
+### コーラーとリスナー
 
 コーラーはトランスミッターを参照するもの、リスナーはレシーバを参照するもの全般を指す。
 
-### StylizedSceneEvents
+SceneManagerはコーラーであり、かつトランスミッターである。
+
+コーラーやトランスミッター自体がスクリプトとして存在するわけではない。
+
+## StylizedSceneEvents
 
 ShibaEngineはデフォルトで、割と色々なシーンに使用できるシーンイベントの一覧を定義したクラスであるStylizedSceneEventsを定義している。
 
-Plugins/ShibaEngine/Core/Script/EventSystem/StylizedSceneEvents.cs
+Plugins/ShibaEngine/Core/Script/EventSystem/Stylized/StylizedSceneEvents
 
 以下に、StylizedSceneEventsで定義されているイベントの一覧を示す。
 これらのイベントを使ってシーンを回すことが出来るようであれば、自作のシーンを作る場合もこのStylizedSceneEventsを使うとよい。
+
+### イベント一覧
 
 #### 基本のイベント
 
@@ -159,9 +195,6 @@ Plugins/ShibaEngine/Core/Script/EventSystem/StylizedSceneEvents.cs
 | MODE4_ON |  |  |
 | MODE4_OFF |  |  |
 
-### StylizedSceneEventsをシーンイベントとして使用する場合のシーンの作り方
-
-
 ### StylizedSceneEventsを実際のシーンで使用する例
 
 #### 基本的に一方通行で、分岐もなく、成功や失敗の判定もないシーン（会話シーンなど）
@@ -175,6 +208,14 @@ Plugins/ShibaEngine/Core/Script/EventSystem/StylizedSceneEvents.cs
 | プレイ終了。 | PLAY_FINISH | 独自コンポーネント |  |
 | シーン終了演出開始。 | CLOSE_START | SceneManager | 上に連続 |
 | シーン終了演出終了。 | CLOSE_FINISH | SceneTransitter |
+
+このようなシーンを表現するSceneManagerとして、ShibaEngineはMinimalStylizedSceneManagerを提供する。
+
+```
+
+Plugins/ShibaEngine/Core/Scripts/EventSystem/MinimalStylizedSceneManager
+
+```
 
 #### プレイを行い、成功または失敗の結果になるシーン
 
@@ -211,79 +252,5 @@ Plugins/ShibaEngine/Core/Script/EventSystem/StylizedSceneEvents.cs
 | シーン終了演出開始。 | CLOSE_START | SceneManager | 上に連続 |
 | シーン終了演出終了。 | CLOSE_FINISH | SceneTransitter |
 
-### シーンイベントの実装方法
-
-#### イベントの種類を列挙体として定義する
-
-シーンごとのイベントは、イベントの種類を列挙した専用の列挙体および、
-その列挙体を取り扱う専用のReactivePropertyを定義する。
-例えば、あるシーン（シーン名：Stage）に、
-
-- READY … シーンの準備完了。これを実行後操作可能になる
-- DEATH … プレイヤーの死亡。
-- CLEAR … プレイヤーのクリア。
-
-の3つのイベントを用意するとする。
-この時、
-Assets/HogeProject/Scripts/FugaSceneフォルダ内に、
-SceneEvents.csスクリプトを作り、以下のように記述する。
-
-```
-
-namespace (Project Name).StageScene
-{
-    /// <summary>
-    /// イベントの列挙。
-    /// </summary>
-    public enum SceneEvents
-    {
-        READY,
-        DEATH,
-        CLEAR,
-    }
-}
-
-```
-
-#### SceneManagerを派生クラスとして定義
-
-GameControllerに定義されているSceneManagerBase\<SceneEvents\>またはStandardSceneManager\<SceneEvents\>を派生させ、
-シーン固有のSceneManagerクラスを定義する。
-クラス名はSceneManagerで良い。
-
-イベントマネージャはイベント発行用に Subject\<SceneEvents\> を持つ。
-
-```
-using UniRx;
-
-namespace (Project Name).StageScene
-{
-    public class SceneEventManager : MonoBehaviour, ISceneEventManager
-    {
-        /// <summary>
-        /// enum値で発行されるイベントのストリーム。
-        /// </summary>
-        protected Subject<SceneEvents> m_sceneEvent = new Subject<SceneEvents>();
-
-        (中略)
-    }
-}
-
-```
-
-#### Zenjectのシーン用MonoInstallerの定義
-
-
-#### イベントリスナの動作
-
-イベントマネージャは、外部に対してIObservable\<SceneEvents\>として公開する。
-
-
-#### イベントコーラーの動作
-
-
-### GameControllerモジュール内のソースコードの解説
-
-
-
+### StylizedSceneEventsをシーンイベントとして使用する場合のシーンの作り方
 
