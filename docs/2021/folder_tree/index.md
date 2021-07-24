@@ -76,3 +76,20 @@ Assets
 
 ## 解説
 
+ShibaEngineは、
+
+- 中核のスクリプトであるCore
+- 汎用的で、複数のShibaAssetから参照されるModules
+- 主にエディタ拡張や拡張メソッドを定義するUtils
+- 個別の機能を提供するShibaAssets（複数）
+
+からなる。
+
+このうち、ShibaAssets以外は、先だってコンパイルされるPluginsフォルダに入れてあり、
+ShibaAssetsのみPluginsの外にある。
+（ShibaAssets、Plugins/ShibaAssetsはProjectビューでFavoritesに入れておくとよい）
+
+スクリプトの使用例であり、独自のスクリプトを記述する際にコピペ元とすることを想定したアセット群を
+CopySourceと呼ぶ。
+CopySourceは、関連するスクリプトと同じフォルダ内にCopySourceというフォルダを作って
+そこに定義するが、アセンブリ分割はCopySourceとそれ以外で分ける。
